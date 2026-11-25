@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#101216">
+  <title>Offroad2D</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div id="hud"></div>
+  <div id="start" class="overlay"><h1>OFFROAD2D</h1><p>Loading…</p></div>
+  <div id="rotate" class="overlay"><h1>↻</h1><p>Rotate your phone to landscape.</p></div>
+
+  <script type="module">
+    // Glue only: menu -> content JSON -> input -> vehicle.controls -> physics.step -> renderer.draw. Logic lives in ./engine/.
+    // Any uncaught error is shown on screen (a stale cached module otherwise just leaves a black canvas).
+    const showErr = msg => { let el = document.getElementById('err'); if (!el) { el = document.createElement('pre'); el.id = 'err';
+      el.style.cssText = 'position:fixed;left:8px;right:8px;bottom:8px;z-index:99;margin:0;padding:8px;font:11px monospace;white-space:pre-wrap;color:#ffd2c8;background:rgba(60,0,0,.85);border-radius:8px;pointer-events:none';
+      document.body.appendChild(el); } el.textContent = 'ERROR: ' + msg + '\n(try a hard refresh to reload cached scripts)'; };
+    addEventListener('error', e => showErr(e.message + (e.filename ? ` @ ${e.filename.split('/').pop()}:${e.lineno}` : '')));
+    addEventListener('unhandledrejection', e => showErr(String(e.reason && (e.reason.stack || e.reason.message) || e.reason)));
+    import { PhysicsWorld } from './engine/physics.js';
+    import { Vehicle } from './engine/vehicle.js';
+    import { Renderer } from './engine/renderer.js';
+    import { createHud, createMenu } from './engine/hud.js';
+    import { createAudio } from './engine/audio.js';
+
+    const $ = id => document.getElementById(id);
+    const q = new URLSearchParams(location.search);
+    const cache = new Map();
+    const json = url => {
+      if (!cache.has(url)) cache.set(url, fetch(url).then(r => { if (!r.ok) throw new Error(url + ' ' + r.status); return r.json(); }));
+      return cache.get(url).catch(e => { cache.delete(url); throw e; });
+    };
+    const store = { get(k) { try { return localStorage.getItem(k); } catch (_) { return null; } },
+                    set(k, v) { try { localStorage.setItem(k, v); } catch (_) {} } };
+    let manifest;
+    try { manifest = await json('./content.json'); }
+    catch (_) { manifest = { levels: [{ id: 'level01', file: 'levels/level01.json', name: 'Level 01' }], vehicles: [{ id: 'crawler01', file: 'vehicles/crawler01.json', name: 'Crawler 01' }] }; }
+    const fileOf = (list, id, dir) => (list.find(x => x.id === id) || {}).file || `${dir}/${id}.json`;
+
+    const renderer = new Renderer($('game'));
+    const audio = createAudio();
+    let stageIdx = -1, prog = -1e9, stuckT = 0, pend = null, phys = null, car = null, level = null, cfg = null, dyn, finished, throttle = 0, running = false, paused = false, cur = {};
+    // per-level best times: localStorage 'o2d.bests' = { levelId: { time (s), vehicle (name) } }; corrupt / blocked storage -> {}
+    const STUCK_S = 15;                                             // default seconds without progress before a stage's stuck tip
+    const BEST_KEY = 'o2d.bests';
+    const loadBests = () => { try { const b = JSON.parse(store.get(BEST_KEY) || '{}'); return b && typeof b === 'object' ? b : {}; } catch (_) { return {}; } };
+    const hud = createHud($('hud'), {
+      onRecover: () => { if (!car) return; car.recover(); stuckT = 0; audio.reset(); hud.toast('RECOVERED · damage stays'); },
+      onRestart: () => { if (!car) return; start(); hud.toast('RESTART · repaired'); },
+      onPlayAgain: () => start(),
+      onMenu: () => openMenu(),
+      cam: (q.get('cam') || store.get('o2d.cam') || '2.5D').toUpperCase(), onCam: m => store.set('o2d.cam', m),
+      onShift: (kind, info) => audio.shift(kind, info),            // shifter notch / range commit / 4WD + locker clicks / ignition key
+      onPause: p => { paused = p; audio.setMuted(p || hud.state.mute); },   // MENU pause panel freezes the sim + silences audio
+      active: () => running,                                        // start screen: HUD keys off (Enter / Space belong to START)
+      ui: (() => { try { return JSON.parse(store.get('o2d.ui') || 'null'); } catch (_) { return null; } })(),
+      onUi: u => store.set('o2d.ui', JSON.stringify(u)),           // MENU -> SETTINGS: steer style + wheel / GAS / BRAKE sizes
+    });
+
+    function start() {
+      if (car) car.destroy();
+      hud.resetControls();                                          // every run / truck change starts 2WD · H · lockers open (before the first tick syncs controls)
+      phys = new PhysicsWorld(level);
+      car = new Vehicle(phys, cfg, level.spawn);
+      dyn = phys.getDynamic();
+      finished = false; throttle = 0; stageIdx = -1; pend = null; prog = -1e9; stuckT = 0;
+      hud.hint('');
+      hud.hideFinish();
+      audio.setVehicle(cur.vehicle, cfg);                           // per-truck engine voice (+ optional sfx/<id>/ overrides)
+      audio.reset();
+      renderer.setAtmosphere(q.get('atmo'));                         // day / dusk / overcast / night: random each playthrough (?atmo= pins)
+      renderer.setLevel({ ...phys.getStatic(), logDefs: level.logs || [], bridges: level.bridges || [] });   // logDefs: boulder vs log; bridges: posts, ropes, rivers
+      renderer.setVehicle({ ...car.getShape(), paint: cfg.paint, look: cfg.look });   // optional JSON paint {body, bed, frame, trim, accent} + render-only look {}
+    }
+
+    const pct = v => `${Math.round(v * 100)}%`;
+    const TOAST = {
+      'winch-break': e => `ROPE SNAPPED (${(e.tension / 1000).toFixed(0)} kN)`,
+      'stall': e => e.cause === 'fuel' ? null : `ENGINE STALLED${e.cause === 'brake' ? ' · power-braking in LOW' : e.cause === 'trans' ? ' · boiled converter' : e.cause === 'lug' ? ' · rolled back in gear' : ''} · turn KEY (K)`,
+      'restart': () => 'ENGINE RESTARTED',
+      'start': () => 'ENGINE RUNNING',
+      'shutdown': () => 'ENGINE OFF · KEY (K) to restart',
+      'no-start': () => 'NO START · tank empty · hold RESET to refuel',
+      'axle-snap': e => `${e.axle.toUpperCase()} AXLE SHAFT SNAPPED · hold RESET to repair`,
+      'overheat': e => e.part === 'xfer' ? 'TRANSFER CASE OVERHEATED · 2WD until it cools'
+        : e.part === 'trans' ? 'TRANSMISSION OVERHEATED · no 4H drive · brake, shift LOW' : 'ENGINE OVERHEATED · limp mode',
+      'cooled': e => e.part === 'xfer' ? 'TRANSFER CASE COOLED · 4WD back' : e.part === 'trans' ? 'TRANSMISSION COOLED · 4H drive back' : 'ENGINE COOLED',
+      'out-of-fuel': () => 'OUT OF FUEL · engine dead · hold RESET to refuel',
+      'rollover': () => 'ROLLOVER · roof crushed, shocks bent',
+      'damage': e => (e.body + e.shock > 0.08 ? `HEAVY IMPACT · body ${pct(e.total)}` : null),
+    };
+
+    const menu = createMenu($('start'), manifest,
+      { level: q.get('level') || store.get('o2d.level') || 'level01', vehicle: q.get('vehicle') || store.get('o2d.vehicle') || 'crawler01' },
+      async sel => {
+        audio.unlock();                                             // the START tap is the gesture that may start audio
+        try { document.fullscreenElement || document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {}); } catch (_) {}
+        try { screen.orientation.lock('landscape').catch(() => {}); } catch (_) {}
+        menu.setStatus('Loading…');
+        try {
+          [level, cfg] = await Promise.all([json(fileOf(manifest.levels, sel.level, 'levels')), json(fileOf(manifest.vehicles, sel.vehicle, 'vehicles'))]);
+        } catch (e) { menu.setStatus('Load failed: ' + e.message); return; }
+        store.set('o2d.level', sel.level); store.set('o2d.vehicle', sel.vehicle);
+        cur = { level: sel.level, vehicle: sel.vehicle, vehicleName: (manifest.vehicles.find(x => x.id === sel.vehicle) || {}).name || cfg.name || sel.vehicle };
+        menu.setStatus('');
+        start();
+        menu.hide();
+        running = true; last = performance.now();
+        renderer.resize();
+        hud.toast(`${level.name || sel.level} · ${renderer.atmoName.toUpperCase()} · tap KEY (K) to start`, 2600);
+      });
+    menu.setBests?.(loadBests());
+    function openMenu() { running = false; hud.hideFinish(); menu.setBests?.(loadBests()); menu.show(); }
+
+    addEventListener('resize', () => renderer.resize());
+    addEventListener('orientationchange', () => setTimeout(() => renderer.resize(), 250));
+
+    let last = performance.now(), fps = 60;
+    function frame(now) {
+      requestAnimationFrame(frame);
+      const dt = Math.min(0.25, (now - last) / 1000); last = now;
+      if (!running || paused || !car) return;
+      try { tick(dt); } catch (e) { showErr(e.stack || e.message); }
+    }
+    function tick(dt) {
+      const s = hud.state, c = car.controls;
+      throttle = s.gas > throttle ? Math.min(s.gas, throttle + dt * 3.5) : s.gas;   // ramp up to the analog pedal (~0.3 s to full), drop instantly
+      c.throttle = throttle; c.brake = s.brake; c.reverse = s.reverse; c.winch = s.winch; c.steer = s.steer;
+      c.fourWD = s.fourWD; c.lockF = s.lockF; c.lockR = s.lockR; c.low = s.range !== 'H'; c.range = s.range;
+      c.ignition = s.ignition | 0;                                 // key-turn counter: each change cranks / shuts off (engine OFF on every spawn)
+
+      const steps = phys.step(dt);                                  // fixed 1/60 s steps, frame dt clamped
+      for (const e of phys.events.splice(0)) { const t = TOAST[e.type] && TOAST[e.type](e); if (t) hud.toast(t); }
+
+      const v = car.getState();
+      // range shifts commit only when stopped: HUD shifter sync ring pulses while v.pendingRange is set; toast on request + on engage
+      if ((v.pendingRange || null) !== pend) {
+        if (v.pendingRange) hud.toast(`STOP TO SHIFT · ${v.range} → ${v.pendingRange}`);
+        else if (pend && v.range === pend) hud.toast(`RANGE ${v.range} ENGAGED`);
+        pend = v.pendingRange || null;
+      }
+      // stages: crossing a stage post shows its banner (level.stages [{x, name?, hint?}]; tutorial hints stay ~7 s)
+      const stg = level.stages || [];
+      while (stageIdx + 1 < stg.length && v.x >= stg[stageIdx + 1].x) {
+        const st = stg[++stageIdx];
+        hud.hint(`${st.name || 'STAGE ' + (stageIdx + 1)}${st.hint ? ' — ' + st.hint : ''}`, st.hint ? 7000 : 2500);
+      }
+      // stuck tips (non-tutorial levels: stage.stuck): no 0.5 m of new progress for stuckAfter (15 s) -> TIP banner, repeats each stuck period
+      if (v.x > prog + 0.5) { prog = v.x; stuckT = 0; } else stuckT += dt;
+      const cst = stg[stageIdx];
+      if (!finished && cst && cst.stuck && stuckT > (cst.stuckAfter ?? STUCK_S)) { hud.hint('TIP — ' + cst.stuck, 7000); stuckT = 0; }
+      if (v.y < (level.bottom ?? -30) - 5) { car.reset(); hud.resetControls(); stageIdx = -1; prog = -1e9; stuckT = 0; audio.reset(); hud.toast('OUT OF BOUNDS · respawned'); }
+      if (!finished && level.finish && v.x > level.finish.x) {
+        finished = true;
+        const t = phys.time, bests = loadBests(), prev = bests[cur.level], isNew = !prev || t < prev.time;
+        if (isNew) { bests[cur.level] = { time: t, vehicle: cur.vehicleName }; store.set(BEST_KEY, JSON.stringify(bests)); menu.setBests?.(bests); }
+        hud.hint('');
+        hud.showFinish(`${t.toFixed(1)} s · ${cur.vehicleName} · fuel ${Math.round((v.fuel ?? 1) * 100)}%`, { best: { time: t, isNew, prev: prev ? prev.time : null }, hardcore: v.hardcore });
+      }
+      if (dt > 0) fps += (1 / dt - fps) * 0.05;
+      renderer.draw({ vehicle: v, dyn: phys.getDynamic(dyn), debug: s.debug, cam: s.cam, dt, info: { fps, steps, time: phys.time, dodge: hud.dodge } });
+      hud.update(v, cfg.engine.redlineRpm);
+      audio.setMuted(s.mute);
+      audio.update(v, dt, cfg.engine);
+    }
+    requestAnimationFrame(frame);
+
+    for (const type of ['pointerup', 'keydown']) addEventListener(type, () => { if (running) audio.unlock(); });   // re-resume after interruptions
+    window.offroad = { get phys() { return phys; }, get car() { return car; }, renderer, hud, audio, menu, manifest };   // console debugging
+  </script>
+</body>
+</html>

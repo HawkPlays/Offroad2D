@@ -1,0 +1,367 @@
+/* Offroad2D — fullscreen landscape layout + touch HUD */
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  margin: 0; width: 100%; height: 100%; overflow: hidden; background: #101216;
+  touch-action: none; overscroll-behavior: none;
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+#game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+/* ---- HUD: translucent dark glass; two-thumb landscape layout ---- */
+.hud {
+  position: fixed; inset: 0; pointer-events: none; touch-action: none; color: #fff;
+  --pad: max(10px, env(safe-area-inset-left), env(safe-area-inset-right));
+  --bot: max(10px, env(safe-area-inset-bottom));
+  /* glass tokens: light see-through fills, hairline borders, soft blur */
+  --glass: linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.02)), rgba(14, 18, 24, 0.22);
+  --glass-on: linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.06)), rgba(14, 18, 24, 0.18);
+  --glass-b: rgba(255, 255, 255, 0.22);
+  --blur: blur(6px) saturate(1.25);
+  /* control sizes; --wheel-s / --gas-s / --brake-s = MENU -> SETTINGS scale (set inline by hud.js) */
+  --wheel: calc(clamp(104px, 32vmin, 176px) * var(--wheel-s, 1));
+  --gas-h: calc(clamp(96px, 30vmin, 168px) * var(--gas-s, 1));
+  --gas-w: calc(var(--gas-h) * 0.58);
+  --brake-h: calc(clamp(74px, 22vmin, 128px) * var(--brake-s, 1));
+  --brake-w: calc(var(--brake-h) * 0.8);
+  --rbtn: clamp(50px, 14.5vmin, 72px);
+  --steer-h: clamp(40px, 12vmin, 64px);
+}
+.hud-zone { position: absolute; display: flex; gap: 8px; pointer-events: none; }
+.hud-zone.tl { top: max(8px, env(safe-area-inset-top)); left: var(--pad); }                       /* MENU RESET only */
+.hud-zone.tr { top: max(8px, env(safe-area-inset-top)); right: var(--pad); }
+.hud-zone.bl { bottom: var(--bot); left: var(--pad); flex-direction: column-reverse; align-items: flex-start; gap: clamp(6px, 2vmin, 12px); }
+.hud-zone.br { bottom: var(--bot); right: var(--pad); flex-direction: row; align-items: flex-end; gap: clamp(8px, 2vmin, 14px); }
+.hud-zone.bc { bottom: var(--bot); left: 50%; transform: translateX(-50%); transform-origin: 50% 100%; align-items: center; gap: clamp(4px, 1.2vmin, 8px);
+  padding: 5px clamp(6px, 1.6vmin, 10px); border-radius: 18px; background: var(--glass); border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); }
+.thumb-row { display: flex; align-items: flex-end; gap: clamp(6px, 1.8vmin, 10px); pointer-events: none; }
+.steer-box { pointer-events: none; }
+
+.btn, .pedal {
+  pointer-events: auto; touch-action: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; letter-spacing: 0.04em; font-size: clamp(11px, 2.9vmin, 16px);
+  color: #eef2f6; background: var(--glass); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
+  border: 1.5px solid var(--glass-b); border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 2px 8px rgba(0, 0, 0, 0.18);
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  transition: background 60ms linear, transform 60ms linear, border-color 80ms linear;
+}
+.btn { min-width: clamp(58px, 11.5vw, 104px); height: clamp(38px, 11vmin, 56px); padding: 0 10px; }
+.btn.small { min-width: clamp(56px, 9.5vw, 88px); height: clamp(32px, 9vmin, 42px); font-size: clamp(10px, 2.6vmin, 14px); border-radius: 999px; }
+.btn.menu { border-color: rgba(255, 170, 60, 0.75); }
+.btn.reset { border-color: rgba(90, 220, 130, 0.75); }
+.btn.on { background: var(--glass-on); border-color: #ffd65a; color: #fff; }
+.btn.menu.on { background: rgba(255, 170, 60, 0.35); }
+.btn.reset.on { background: rgba(90, 220, 130, 0.35); transform: scale(0.96); }
+/* pedals: tall glass pads; analog vertical slide (bottom ~18 % -> top 100 %); .pedal-fill scaleY = applied level (touch or key) */
+.pedal { position: relative; overflow: hidden; border-radius: 16px; font-size: clamp(13px, 3.8vmin, 21px); }
+.pedal.gas { width: var(--gas-w); height: var(--gas-h); order: 2; border-color: rgba(90, 220, 130, 0.7); }
+.pedal.brake { width: var(--brake-w); height: var(--brake-h); order: 0; border-color: rgba(240, 90, 80, 0.7); }
+.pedal-fill { position: absolute; inset: 0; transform-origin: 50% 100%; transform: scaleY(0); pointer-events: none;
+  transition: transform 40ms linear; border-top: 3px solid rgba(255, 255, 255, 0.8); }
+.pedal.gas .pedal-fill { background: linear-gradient(to top, rgba(60, 200, 110, 0.7), rgba(60, 200, 110, 0.3)); }
+.pedal.brake .pedal-fill { background: linear-gradient(to top, rgba(230, 70, 60, 0.7), rgba(230, 70, 60, 0.3)); }
+.pedal-lbl { position: relative; pointer-events: none; }
+.pedal::after { content: ''; position: absolute; left: 24%; right: 24%; top: 8%; bottom: 8%; pointer-events: none;
+  background: repeating-linear-gradient(to top, transparent 0 calc(16.6% - 2px), rgba(255, 255, 255, 0.16) calc(16.6% - 2px) 16.6%); }
+.pedal.gas.on, .pedal.brake.on { transform: scale(0.97); }
+/* round thumb buttons beside BRAKE: hold WINCH (left thumb) while the right thumb feathers GAS */
+.btn.round { min-width: 0; width: var(--rbtn); height: var(--rbtn); padding: 0; border-radius: 50%; border-width: 2.5px;
+  font-size: clamp(10px, 2.7vmin, 14px); margin-bottom: calc(var(--brake-h) * 0.12); }
+.btn.winch { order: 1; border-color: rgba(255, 170, 60, 0.8); box-shadow: 0 0 10px rgba(255, 170, 60, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.14); }
+.btn.rev { order: 2; border-color: rgba(240, 80, 70, 0.8); box-shadow: 0 0 10px rgba(240, 80, 70, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.14); }
+.btn.winch.on { background: rgba(255, 170, 60, 0.45); border-color: #ffd08a; transform: scale(0.95); }
+.btn.winch.armed { border-color: #ffd23c; box-shadow: 0 0 0 3px rgba(255, 210, 60, 0.3), 0 0 14px rgba(255, 190, 60, 0.4); }
+.btn.rev.on { background: rgba(240, 80, 70, 0.5); border-color: #ffb0a8; }
+/* steering: virtual wheel (default) or ◄ ► pair (MENU -> SETTINGS); one shown via .hud.steer-btns */
+.steer-row { display: none; gap: 8px; pointer-events: none; }
+.hud.steer-btns .steer-row { display: flex; }
+.hud.steer-btns .steer-wheel { display: none; }
+.btn.steer { min-width: 0; width: calc(var(--wheel) * 0.5); height: var(--steer-h); padding: 0; border-radius: 16px;
+  font-size: clamp(18px, 5.5vmin, 30px); line-height: 1; border-color: rgba(160, 210, 255, 0.45); }
+.btn.steer.on { background: rgba(70, 160, 255, 0.4); border-color: #bfe2ff; transform: scale(0.95); }
+.steer-wheel { width: var(--wheel); height: var(--wheel); margin-left: calc(var(--wheel) * 0.06); border-radius: 50%;
+  pointer-events: auto; touch-action: none; cursor: grab; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.35)); }
+.steer-wheel.grab { cursor: grabbing; }
+.sw-rot { width: 100%; height: 100%; display: block; transition: transform 220ms cubic-bezier(0.3, 1.4, 0.5, 1); }
+.steer-wheel.grab .sw-rot { transition: none; }
+.sw-rim { fill: none; stroke: rgba(20, 24, 30, 0.55); stroke-width: 11; }
+.sw-rim-in { fill: rgba(255, 255, 255, 0.04); stroke: rgba(255, 255, 255, 0.28); stroke-width: 1; }
+.sw-grip { fill: none; stroke: rgba(255, 255, 255, 0.22); stroke-width: 11; stroke-linecap: round; }
+.sw-spoke { fill: rgba(200, 206, 214, 0.42); stroke: rgba(255, 255, 255, 0.35); stroke-width: 0.8; }
+.sw-hub { fill: rgba(20, 24, 30, 0.6); stroke: rgba(255, 255, 255, 0.3); stroke-width: 1; }
+.sw-hub-ring { fill: none; stroke: #ffa53a; stroke-width: 1.6; opacity: 0.85; }
+.sw-logo { fill: #ffb04a; opacity: 0.85; }
+.sw-mark { fill: #ffa53a; }
+.steer-wheel.grab .sw-rim { stroke: rgba(70, 160, 255, 0.45); }
+.steer-wheel { position: relative; }
+.sw-badge { display: none; position: absolute; left: 0; top: 100%; transform: translateY(3px); white-space: nowrap; pointer-events: none;
+  padding: 1px 7px; border-radius: 999px; font-size: 9.5px; font-weight: 800; letter-spacing: 0.06em; color: #ffd08a;
+  background: rgba(14, 18, 24, 0.35); border: 1px solid rgba(255, 170, 60, 0.45); }
+/* TILT mode: the wheel shrinks into a read-only indicator of the tilt steer (tap = re-center) */
+.hud.steer-tilt .steer-wheel { --wheel: calc(clamp(104px, 32vmin, 176px) * var(--wheel-s, 1) * 0.62); cursor: pointer; margin-bottom: 16px; }
+.hud.steer-tilt .sw-badge { display: block; }
+.hud.steer-tilt .sw-rot { transition: transform 60ms linear; }
+.hud.steer-tilt .sw-rim { stroke: rgba(255, 170, 60, 0.35); }
+
+/* ---- gauges (top-right telemetry: speed + gear | rig schematic, FUEL, DMG) ---- */
+.gauges {
+  display: grid; grid-template-columns: 1fr auto; column-gap: 8px; row-gap: 4px; align-items: center;
+  grid-template-areas: "rpm rpm" "speed rig" "gear rig";
+  padding: 6px 9px 7px; border-radius: 12px; width: 156px;
+  background: var(--glass); border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  font-variant-numeric: tabular-nums; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+.bar.rpm { grid-area: rpm; }
+.speed { grid-area: speed; font-size: 19px; font-weight: 700; text-align: center; line-height: 1; }
+.speed::after { content: " km/h"; font-size: 10px; font-weight: 500; opacity: 0.7; }
+.gear { grid-area: gear; font-size: 24px; font-weight: 800; color: #ffd23c; text-align: center; line-height: 1; }
+.bar { grid-column: 1 / -1; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.14); overflow: hidden; }
+.bar-fill { width: 100%; height: 100%; background: #5fd98a; transform-origin: left center; transform: scaleX(0); }
+.bar-fill.hot { background: #ff5247; }
+.winch-row { grid-column: 1 / -1; display: none; font-size: 10.5px; }
+.winch-row.show { display: block; }
+.winch-row .bar { margin-top: 3px; }
+.winch-row .bar-fill { background: #6fb6ff; }
+.winch-row .bar-fill.hot { background: #ff5247; }
+
+/* ---- pause panel (MENU / Esc) + settings ---- */
+.pause { position: absolute; inset: 0; z-index: 8; display: none; align-items: center; justify-content: center;
+  pointer-events: auto; background: rgba(6, 8, 12, 0.18); }
+.pause.show { display: flex; }
+.hud.paused .hud-zone.tl .menu { position: relative; z-index: 9; }
+.pause-card { min-width: min(360px, 58vw); max-width: 92vw; max-height: 84vh; overflow-y: auto; padding: clamp(10px, 3vmin, 18px);
+  border-radius: 18px; background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03)), rgba(12, 15, 20, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.22); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px) saturate(1.3); -webkit-backdrop-filter: blur(12px) saturate(1.3); }
+.p-view { display: flex; flex-direction: column; gap: clamp(6px, 1.8vmin, 10px); }
+.p-view.set, .pause-card.show-set .p-view.main { display: none; }
+.pause-card.show-set .p-view.set { display: flex; }
+.p-title { text-align: center; font-weight: 800; letter-spacing: 0.16em; font-size: clamp(13px, 3.6vmin, 18px); opacity: 0.85; }
+.p-row { display: flex; gap: 8px; align-items: center; }
+.p-row > .btn { flex: 1 1 0; min-width: 0; white-space: nowrap; }
+.btn.p-btn { height: clamp(36px, 10vmin, 48px); }
+.btn.p-btn.resume { border-color: rgba(90, 220, 130, 0.75); }
+.btn.p-btn.on { background: rgba(70, 160, 255, 0.35); border-color: #9cd0ff; }
+.p-row.seg .set-lbl { flex: 0 0 auto; width: auto; margin-right: 2px; }
+.p-row.seg > .btn { font-size: clamp(10px, 2.6vmin, 13px); padding: 0 6px; }
+.btn.p-btn.recenter { flex: 1.25 1 0; border-color: rgba(255, 170, 60, 0.7); }
+.btn.p-btn.off { opacity: 0.35; pointer-events: none; }
+.set-row { display: flex; align-items: center; gap: 10px; }
+.set-lbl { width: 7.4em; white-space: nowrap; font-size: clamp(10px, 2.6vmin, 13px); font-weight: 800; letter-spacing: 0.06em; opacity: 0.8; }
+.set-val { width: 3em; text-align: right; font-size: clamp(11px, 2.8vmin, 14px); font-weight: 700; font-variant-numeric: tabular-nums; }
+.set-track { --f: 0.5; position: relative; flex: 1; height: clamp(30px, 8vmin, 40px); pointer-events: auto; touch-action: none; cursor: pointer; }
+.set-track::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 6px; margin-top: -3px; border-radius: 3px; background: rgba(255, 255, 255, 0.18); }
+.set-fill { position: absolute; left: 0; top: 50%; height: 6px; margin-top: -3px; border-radius: 3px; width: calc(var(--f) * 100%); background: #ffb43a; }
+.set-thumb { position: absolute; top: 50%; left: calc(var(--f) * 100%); width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%;
+  background: #fff2d6; border: 2px solid #ffa53a; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4); }
+
+.toast {
+  position: absolute; top: 22%; left: 50%; transform: translateX(-50%);
+  padding: 8px 18px; border-radius: 12px; background: rgba(10, 12, 16, 0.5); border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  font-size: clamp(14px, 4vmin, 22px); font-weight: 700; opacity: 0; transition: opacity 180ms; white-space: nowrap;
+}
+.toast.show { opacity: 1; }
+.hud.finished .toast { top: 66%; }   /* keep toasts clear of the (taller) finish panel */
+
+/* ---- finish panel (banner + PLAY AGAIN), top-centre between the reset buttons and the gauges ---- */
+.finish {
+  position: absolute; top: max(8px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
+  display: none; flex-direction: column; align-items: center; gap: clamp(4px, 1.4vmin, 10px);
+  padding: clamp(8px, 2.4vmin, 16px) clamp(16px, 5vmin, 32px); border-radius: 14px;
+  background: rgba(10, 12, 16, 0.78); white-space: nowrap;
+}
+.finish.show { display: flex; }
+.finish-banner { font-size: clamp(26px, 9vmin, 54px); font-weight: 800; letter-spacing: 0.08em; line-height: 1; color: #ffd23c; }
+.finish-detail { font-size: clamp(13px, 3.6vmin, 20px); font-weight: 700; font-variant-numeric: tabular-nums; }
+.finish-detail:empty { display: none; }
+.finish-newbest {
+  display: none; margin-left: 0.5em; vertical-align: middle; padding: 2px 8px; border-radius: 8px;
+  font-size: clamp(11px, 3vmin, 16px); letter-spacing: 0.06em; color: #14161a; background: #4fe08a;
+  animation: newbest 0.9s ease-in-out infinite alternate;
+}
+.finish-newbest.show { display: inline-block; }
+@keyframes newbest { from { transform: scale(1); } to { transform: scale(1.12); } }
+.finish-best { font-size: clamp(11px, 3vmin, 15px); opacity: 0.8; font-variant-numeric: tabular-nums; }
+.finish-best:empty, .finish-wear:empty { display: none; }
+.finish-wear { display: flex; gap: 6px; }
+.fw { display: flex; flex-direction: column; align-items: center; min-width: 3.4em; padding: 2px 6px; border-radius: 6px;
+      background: rgba(79, 224, 138, 0.16); font-size: clamp(9px, 2.4vmin, 12px); font-variant-numeric: tabular-nums; }
+.fw.warn { background: rgba(255, 196, 40, 0.24); }
+.fw.fail { background: rgba(230, 70, 50, 0.42); }
+.fw-l { font-size: 0.85em; letter-spacing: 0.06em; opacity: 0.75; }
+.card-best { font-size: clamp(9.5px, 2.4vmin, 11.5px); font-weight: 800; color: #ffd23c; font-variant-numeric: tabular-nums; }
+.card-best:empty { display: none; }
+.finish-again {
+  pointer-events: auto; touch-action: none; cursor: pointer;
+  margin-top: 2px; padding: clamp(10px, 3vmin, 16px) clamp(24px, 7vmin, 44px); border-radius: 12px;
+  background: #ffc428; color: #14161a; border: 2px solid #ffe08a;
+  font-weight: 800; letter-spacing: 0.04em; font-size: clamp(16px, 5vmin, 26px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45); transition: transform 60ms linear, background 60ms linear;
+}
+.finish-again.on { background: #ffd65a; transform: scale(0.96); }
+
+/* ---- overlays ---- */
+.overlay {
+  position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; gap: 12px;
+  align-items: center; justify-content: center; text-align: center; padding: 24px;
+  background: rgba(10, 12, 16, 0.86); color: #eef1f4;
+}
+.overlay h1 { margin: 0; font-size: clamp(26px, 9vmin, 54px); letter-spacing: 0.06em; }
+.overlay p { margin: 0; max-width: 46ch; font-size: clamp(12px, 3.4vmin, 16px); line-height: 1.45; opacity: 0.85; }
+.overlay .go { margin-top: 8px; padding: 12px 28px; border-radius: 12px; background: #ffc428; color: #14161a; font-weight: 800; font-size: clamp(15px, 4.5vmin, 22px); }
+.overlay.hidden { display: none; }
+#rotate { display: none; z-index: 20; }
+@media (orientation: portrait) and (pointer: coarse) { #rotate { display: flex; } }
+
+/* ---- hardcore status line (failures / heat / engine-off text) ---- */
+.hc-status { grid-column: 1 / -1; font-size: 10.5px; line-height: 1.2; font-weight: 800; color: #ff7a6b; text-align: center; white-space: normal; }
+.hc-status:empty { display: none; }
+/* ignition key (bottom centre, left of 4WD): .off pulses amber, .crank = key turned (starter), .run = green; .turn = tap twist */
+.btn.key { min-width: clamp(44px, 10.5vmin, 60px); width: clamp(44px, 10.5vmin, 60px); height: clamp(44px, 10.5vmin, 60px);
+  padding: 0; border-radius: 50%; border-width: 2.5px; }
+/* bottom-centre tray toggles: slim glass pills with an LED (4WD green, lockers amber) */
+.btn.tog { white-space: nowrap; min-width: clamp(54px, 9vw, 92px); height: clamp(32px, 9vmin, 42px); padding: 0 8px 0 10px; gap: 6px; border-radius: 999px;
+  font-size: clamp(10px, 2.6vmin, 13px); }
+.btn.tog::after { content: ''; flex: none; width: 0.8em; height: 0.8em; border-radius: 50%; background: rgba(0, 0, 0, 0.45); border: 1px solid rgba(255, 255, 255, 0.3); }
+.btn.tog.on { background: var(--glass-on); border-color: rgba(90, 220, 130, 0.85); }
+.btn.tog.on::after { background: #4fe08a; box-shadow: 0 0 6px #4fe08a; border-color: #b8ffd2; }
+.btn.tog.lock.on { border-color: rgba(255, 170, 60, 0.85); }
+.btn.tog.lock.on::after { background: #ffb43a; box-shadow: 0 0 6px #ffb43a; border-color: #ffe1a0; }
+.key-ico { width: 72%; height: auto; fill: #d9dee6; transform-origin: 22% 50%; transition: transform 140ms ease-out; }
+.key-ico .key-hole { fill: rgba(18, 22, 28, 0.9); }
+.btn.key.off { border-color: #ffb43a; animation: o2d-keypulse 1.1s ease-in-out infinite; }
+.btn.key.off .key-ico { fill: #ffd27a; }
+.btn.key.stalled { border-color: #ff6a4a; }
+.btn.key.crank { border-color: #ffe27a; background: rgba(255, 196, 40, 0.3); }
+.btn.key.crank .key-ico { transform: rotate(60deg); animation: o2d-crank 0.12s linear infinite alternate; }
+.btn.key.run { border-color: rgba(90, 220, 130, 0.85); }
+.btn.key.run .key-ico { fill: #8fe8ad; transform: rotate(35deg); }
+.btn.key.turn .key-ico { animation: o2d-keyturn 0.25s ease-out; }
+@keyframes o2d-keypulse { 50% { background: rgba(255, 180, 58, 0.35); } }
+@keyframes o2d-crank { from { transform: rotate(56deg); } to { transform: rotate(64deg); } }
+@keyframes o2d-keyturn { 50% { transform: rotate(70deg) scale(1.08); } }
+
+/* finish panel: PLAY AGAIN + MENU side by side */
+.finish-btns { display: flex; gap: 10px; }
+.finish-again.alt { background: rgba(240, 240, 240, 0.12); color: #eef1f4; border-color: rgba(255, 255, 255, 0.4); }
+
+/* ---- start screen: level / vehicle selector ---- */
+.overlay.menu { justify-content: flex-start; gap: clamp(6px, 1.8vmin, 12px); padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 14px max(16px, env(safe-area-inset-left));
+  overflow-y: auto; touch-action: pan-y; }
+.overlay.menu h1 { font-size: clamp(22px, 7vmin, 44px); }
+.menu-sub { font-size: clamp(10px, 2.6vmin, 13px); font-weight: 700; letter-spacing: 0.05em; color: #ffb43a; }
+.menu-cols { display: flex; gap: clamp(10px, 3vw, 28px); flex-wrap: wrap; justify-content: center; width: 100%; max-width: 980px; }
+.menu-col { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.menu-h { font-size: 11px; font-weight: 800; letter-spacing: 0.12em; opacity: 0.6; }
+.menu-cards { display: flex; gap: 8px; flex-wrap: wrap; }
+.card {
+  pointer-events: auto; cursor: pointer; touch-action: manipulation; text-align: left;
+  width: clamp(130px, 22vw, 210px); min-height: clamp(64px, 17vmin, 96px); padding: 8px 10px; border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06); border: 2px solid rgba(255, 255, 255, 0.18);
+  display: flex; flex-direction: column; gap: 3px; transition: border-color 80ms, background 80ms;
+}
+.card.sel { border-color: #ffc428; background: rgba(255, 196, 40, 0.14); }
+.card.empty { cursor: default; border-style: dashed; opacity: 0.45; }
+.card-name { font-weight: 800; font-size: clamp(12px, 3.2vmin, 16px); }
+.card-tag { align-self: flex-start; font-size: 9.5px; font-weight: 800; letter-spacing: 0.08em; padding: 1px 6px; border-radius: 6px; background: #3d8f5a; }
+.card-tag.hard { background: #b8452f; }
+.card-tag.medium { background: #b07a1f; }
+.card-blurb { font-size: clamp(10px, 2.6vmin, 12px); line-height: 1.3; opacity: 0.75; }
+.menu-help { font-size: clamp(10px, 2.6vmin, 13px) !important; }
+.menu-status:empty { display: none; }
+.overlay.menu .go { pointer-events: auto; cursor: pointer; margin-top: 2px; }
+@media (max-height: 480px) {
+  .menu-cols { flex-wrap: nowrap; }
+  .card { width: clamp(118px, 18vw, 170px); min-height: 0; padding: 6px 8px; }
+  .card-blurb { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; font-size: 10px; }
+  .menu-help { max-width: 90ch !important; font-size: 10px !important; line-height: 1.3 !important; }
+  .overlay.menu .go { padding: 9px 30px; }
+}
+
+/* ---- fuel gauge + tutorial / stage banner ---- */
+/* one-line meters (FUEL, DMG): label · bar · value */
+.meter { grid-column: 1 / -1; display: flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 700; line-height: 1; }
+.m-lbl { width: 28px; opacity: 0.75; letter-spacing: 0.02em; }
+.m-bar { flex: 1; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.16); overflow: hidden; }
+.m-val { width: 34px; text-align: right; }
+.meter.fuel .bar-fill { background: #e8b23a; }
+.meter.fuel.low .bar-fill { background: #ff5247; }
+.meter.fuel.low .m-val { color: #ff8a80; }
+.meter.dmg .bar-fill { background: #5fd98a; }
+.meter.dmg.warn .bar-fill { background: #ffb43a; }
+.meter.dmg.fail .bar-fill { background: #ff4b3e; }
+.meter.dmg.fail .m-val { color: #ff6a5e; }
+.meter.dmg.crit .m-bar { animation: o2d-pulse 0.4s ease-in-out infinite alternate; box-shadow: 0 0 6px #ff7a3a; }
+.meter.dmg.hit .m-bar { animation: o2d-hit 0.6s ease-out; }
+/* ---- transfer-case shifter: vertical notched gate H (top) · L+ · L · L- (bottom); --gi = knob gate 0..3 (fractional while dragging) ---- */
+.shifter {
+  --sh-h: clamp(92px, 27vmin, 150px); --sh-k: clamp(11px, 3.2vmin, 16px); --gi: 0;
+  position: relative; pointer-events: auto; touch-action: none; cursor: grab; flex: none;
+  width: clamp(62px, 12vmin, 86px); height: var(--sh-h); border-radius: 14px; margin-bottom: 1.3em;
+  background: linear-gradient(160deg, rgba(255, 220, 160, 0.10), rgba(255, 255, 255, 0.02)), rgba(14, 18, 24, 0.24);
+  border: 1.5px solid rgba(214, 170, 90, 0.5); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); font-variant-numeric: tabular-nums;
+}
+.shifter.grab { cursor: grabbing; border-color: #e7bf6a; }
+.sh-title { position: absolute; bottom: -1.45em; left: 0; right: 0; text-align: center; font-size: 9px; font-weight: 800; letter-spacing: 0.14em;
+  color: #d9b56e; text-shadow: 0 1px 2px #000; pointer-events: none; }
+/* the gate: dark machined groove; notches = cross cuts at each detent */
+.sh-slot { position: absolute; left: 64%; top: var(--sh-k); bottom: var(--sh-k); width: 8px; margin-left: -4px; border-radius: 4px;
+  background: linear-gradient(to right, #050607, #24272c 55%, #0b0c0e); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12); pointer-events: none; }
+.sh-notch { position: absolute; left: -7px; right: -7px; height: 4px; top: calc(var(--g) * (100% - 4px) / 3); border-radius: 2px;
+  background: #07080a; box-shadow: 0 1px 0 rgba(255, 255, 255, 0.16); }
+.sh-lbl { position: absolute; left: 7%; width: 40%; text-align: center; transform: translateY(-50%); pointer-events: none;
+  top: calc(var(--sh-k) + var(--g) * (100% - 2 * var(--sh-k)) / 3);
+  font-size: clamp(10px, 2.9vmin, 14px); font-weight: 800; color: rgba(233, 237, 242, 0.5); transition: color 80ms; }
+.sh-lbl.cur { color: #9ff0bd; }                       /* committed range (vehicle) */
+.sh-lbl.req { color: #ffd23c; text-shadow: 0 0 6px rgba(255, 196, 40, 0.5); }   /* where the lever sits */
+/* knob: T-handle riding the groove; springs into the gate when released (no transition while dragging) */
+.sh-knob { position: absolute; left: 64%; width: calc(var(--sh-k) * 2.3); height: calc(var(--sh-k) * 1.7); pointer-events: none;
+  top: calc(var(--sh-k) + var(--gi) * (100% - 2 * var(--sh-k)) / 3); transform: translate(-50%, -50%);
+  border-radius: 7px; border: 2px solid #1a1c20;
+  background: radial-gradient(ellipse at 40% 30%, #fff3cf, #d9a43a 45%, #7a5414);
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.6), inset 0 -2px 2px rgba(0, 0, 0, 0.35);
+  transition: top 120ms cubic-bezier(0.3, 1.6, 0.5, 1); }
+.sh-knob::after { content: ''; position: absolute; left: 22%; right: 22%; top: 46%; height: 2px; border-radius: 1px; background: rgba(40, 26, 4, 0.55); }
+.shifter.drag .sh-knob { transition: none; }
+.shifter.grab .sh-knob { transform: translate(-50%, -50%) scale(1.08); }
+.shifter.low { border-color: rgba(255, 196, 40, 0.8); }
+/* moving shift: amber sync ring pulses around the knob until |v| <= 0.3 m/s and the range commits */
+.sh-sync { position: absolute; inset: -7px; border-radius: 11px; border: 2px solid #ffb43a; opacity: 0; pointer-events: none; }
+.shifter.sync .sh-sync { animation: o2d-sync 0.7s ease-in-out infinite; }
+.shifter.sync .sh-lbl.req { color: #ffb43a; }
+.shifter.sync { border-color: #ffb43a; }
+@keyframes o2d-sync { 0%, 100% { opacity: 0.95; transform: scale(1); box-shadow: 0 0 6px 1px rgba(255, 170, 40, 0.7); }
+  50% { opacity: 0.3; transform: scale(1.22); box-shadow: 0 0 14px 4px rgba(255, 170, 40, 0.25); } }
+@media (prefers-reduced-motion: reduce) { .sh-knob { transition: none; } .shifter.sync .sh-sync { animation: none; opacity: 1; } }
+.hint { position: absolute; top: 14%; left: 50%; transform: translateX(-50%); max-width: 70%; padding: 8px 14px; border-radius: 8px;
+  background: rgba(20, 16, 8, 0.55); border: 1.5px solid rgba(200, 150, 60, 0.8); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); color: #ffe7b0; font: 700 14px/1.3 system-ui, sans-serif;
+  text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 5; }
+.hint.show { opacity: 1; }
+
+/* ---- game-feel telemetry: winch load, failure pulses, damage hit flash, rig glyph ---- */
+.winch-row .bar { position: relative; }
+.bar-mark { position: absolute; top: -1px; bottom: -1px; width: 2px; margin-left: -1px; background: rgba(255, 255, 255, 0.75); }
+.winch-row.crit .winch-txt { color: #ff6a5e; animation: o2d-pulse 0.25s steps(2) infinite; }
+.rig.hit { animation: o2d-hit 0.6s ease-out; }
+@keyframes o2d-pulse { from { opacity: 1; } to { opacity: 0.35; } }
+@keyframes o2d-hit { 0% { box-shadow: 0 0 0 2px #ff3b2e, 0 0 12px #ff3b2e; transform: scale(1.12); } 100% { box-shadow: none; transform: none; } }
+.rig { grid-area: rig; position: relative; height: 30px; width: 64px; margin: 0; border-radius: 4px; }
+.rig-body { position: absolute; left: 12px; right: 12px; top: 10px; bottom: 10px; border-radius: 3px; background: rgba(255, 255, 255, 0.14); }
+.rig-axle { --s: 0; position: absolute; top: 4px; bottom: 4px; width: 4px; margin-left: -2px; border-radius: 2px;
+  background: hsl(calc(130 - 130 * var(--s)), 75%, 52%); }
+.rig-axle.f { left: 50px; } .rig-axle.r { left: 14px; }
+.rig-axle.crit { animation: o2d-pulse 0.18s ease-in-out infinite alternate; }
+.rig-axle.snap { background: repeating-linear-gradient(0deg, #ff4b3e 0 3px, transparent 3px 6px); }
+.rig-w { --d: 0; position: absolute; width: 14px; height: 8px; margin: -4px 0 0 -7px; border-radius: 3px; background: #2b2e34;
+  border: 1px solid rgba(255, 255, 255, 0.35); box-shadow: 0 0 0 calc(var(--d) * 3px) rgba(255, 70, 50, calc(0.3 + var(--d) * 0.7)); }
+.rig-w.fl { left: 50px; top: 4px; } .rig-w.fr { left: 50px; top: 26px; } .rig-w.rl { left: 14px; top: 4px; } .rig-w.rr { left: 14px; top: 26px; }
+.rig-w.spin { background: #ffb43a; border-color: #ffe1a0; }
+.rig-w.lock { background: #dfe8ff; border-color: #fff; }
+.rig-w.air { opacity: 0.3; }
+@media (prefers-reduced-motion: reduce) { .btn.key.off, .btn.key .key-ico, .winch-row.crit .winch-txt, .meter.dmg.crit .m-bar, .meter.dmg.hit .m-bar, .rig-axle.crit, .rig.hit { animation: none; } }

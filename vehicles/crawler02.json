@@ -1,0 +1,45 @@
+{
+  "name": "Mega Bogger",
+  "paint": { "body": "#e46f1c", "bed": "#d4641a", "frame": "#1f2023", "trim": "#2a2b2f" },
+  "look": { "style": "bogger", "links": 4, "tread": { "lugs": 10, "kind": "paddle", "depth": 0.09 }, "rim": "#3a3b3f",
+            "coil": { "spring": "#d8dade", "body": "#1d1e22" } },
+  "chassis": {
+    "mass": 2300,
+    "inertia": 4400,
+    "com": [0.1, 0.0],
+    "friction": 0.45,
+    "restitution": 0.05,
+    "shapes": [
+      { "kind": "frame", "points": [[-2.55, -0.12], [2.15, -0.12], [2.65, 0.16], [2.6, 0.36], [-2.6, 0.36], [-2.65, 0.05]] },
+      { "kind": "hood",  "points": [[0.9, 0.36], [2.55, 0.36], [2.45, 0.78], [1.05, 0.86]] },
+      { "kind": "cab",   "points": [[-0.85, 0.36], [1.05, 0.36], [1.05, 0.86], [0.6, 1.45], [-0.7, 1.45]] },
+      { "kind": "bed",   "points": [[-2.6, 0.36], [-0.85, 0.36], [-0.85, 0.8], [-2.6, 0.8]] }
+    ]
+  },
+  "wheels": { "radius": 0.62, "mass": 70, "inertia": 24.0, "grip": 1.1 },
+  "axles": [
+    {
+      "name": "front", "mount": [1.75, -0.38], "axis": [0, 1], "brakeBias": 1.0,
+      "shockTop": [1.35, 0.72], "linkPivot": [0.5, 0.0],
+      "suspension": { "stiffness": 21000, "damping": 3000, "reboundDamping": 4300, "travel": 0.56, "preload": 0.02,
+                      "bumpStopStiffness": 260000, "bumpStopLength": 0.09 }
+    },
+    {
+      "name": "rear", "mount": [-1.75, -0.38], "axis": [0, 1], "brakeBias": 0.8,
+      "shockTop": [-1.35, 0.72], "linkPivot": [-0.5, 0.0],
+      "suspension": { "stiffness": 20000, "damping": 2900, "reboundDamping": 4200, "travel": 0.56, "preload": 0.02,
+                      "bumpStopStiffness": 260000, "bumpStopLength": 0.09 }
+    }
+  ],
+  "engine": {
+    "idleRpm": 700, "launchRpm": 1700, "redlineRpm": 4200, "inertia": 0.5, "engineBrake": 70,
+    "torqueCurve": [[500, 260], [900, 380], [1400, 480], [1800, 520], [2400, 505], [3000, 460], [3600, 400], [4200, 330]]
+  },
+  "drivetrain": { "lowRatio": 70, "highRatio": 24.5, "highTorque": 0.952, "lowMult": 3.0, "lowSpeed": 0.35, "lowBrake": 1.5, "efficiency": 0.88 },
+  "brakes": { "torque": 5800 },
+  "winch": {
+    "mount": [2.65, 0.12], "maxLength": 20, "minLength": 0.8, "reelSpeed": 0.8,
+    "maxPull": 36000, "breakTension": 60000, "stiffness": 300000, "damping": 22000
+  },
+  "hardcore": { "bogAngle": 22, "tcStallRpm": 2100, "lockSpeed": 5.5, "transGain": 0.3, "transSteepGain": 2.5 }
+}

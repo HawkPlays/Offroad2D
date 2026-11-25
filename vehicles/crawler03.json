@@ -1,0 +1,252 @@
+{
+ "name": "Rock Buggy",
+ "paint": {
+  "body": "#2d5fb5",
+  "frame": "#1d1e22",
+  "trim": "#2a2b30"
+ },
+ "look": {
+  "style": "buggy",
+  "tube": [
+   "cab"
+  ],
+  "links": 4,
+  "tread": {
+   "lugs": 16,
+   "kind": "block",
+   "depth": 0.06
+  },
+  "rim": "#2a2b2f",
+  "beadlock": true,
+  "coil": {
+   "spring": "#3a7be0",
+   "body": "#1b3f86"
+  }
+ },
+ "chassis": {
+  "mass": 900,
+  "inertia": 1050,
+  "com": [
+   0.0,
+   0.05
+  ],
+  "friction": 0.45,
+  "restitution": 0.05,
+  "shapes": [
+   {
+    "kind": "frame",
+    "points": [
+     [
+      -1.6,
+      -0.1
+     ],
+     [
+      1.55,
+      -0.1
+     ],
+     [
+      1.9,
+      0.3
+     ],
+     [
+      1.85,
+      0.4
+     ],
+     [
+      -1.85,
+      0.4
+     ],
+     [
+      -1.95,
+      0.25
+     ]
+    ]
+   },
+   {
+    "kind": "hood",
+    "points": [
+     [
+      0.6,
+      0.4
+     ],
+     [
+      1.85,
+      0.4
+     ],
+     [
+      1.6,
+      0.7
+     ],
+     [
+      0.75,
+      0.78
+     ]
+    ]
+   },
+   {
+    "kind": "cab",
+    "points": [
+     [
+      -1.2,
+      0.4
+     ],
+     [
+      0.75,
+      0.4
+     ],
+     [
+      0.75,
+      0.78
+     ],
+     [
+      0.2,
+      1.35
+     ],
+     [
+      -1.0,
+      1.35
+     ]
+    ]
+   }
+  ]
+ },
+ "wheels": {
+  "radius": 0.52,
+  "mass": 30,
+  "inertia": 4.5,
+  "grip": 1.05
+ },
+ "axles": [
+  {
+   "name": "front",
+   "mount": [
+    1.4,
+    -0.55
+   ],
+   "axis": [
+    0,
+    1
+   ],
+   "brakeBias": 1.0,
+   "shockTop": [
+    1.0,
+    0.75
+   ],
+   "linkPivot": [
+    0.35,
+    0.0
+   ],
+   "suspension": {
+    "stiffness": 9000,
+    "damping": 1200,
+    "reboundDamping": 1700,
+    "travel": 0.62,
+    "preload": 0.02,
+    "bumpStopStiffness": 150000,
+    "bumpStopLength": 0.1
+   }
+  },
+  {
+   "name": "rear",
+   "mount": [
+    -1.4,
+    -0.55
+   ],
+   "axis": [
+    0,
+    1
+   ],
+   "brakeBias": 0.8,
+   "shockTop": [
+    -1.0,
+    0.75
+   ],
+   "linkPivot": [
+    -0.35,
+    0.0
+   ],
+   "suspension": {
+    "stiffness": 8800,
+    "damping": 1150,
+    "reboundDamping": 1650,
+    "travel": 0.62,
+    "preload": 0.02,
+    "bumpStopStiffness": 150000,
+    "bumpStopLength": 0.1
+   }
+  }
+ ],
+ "engine": {
+  "idleRpm": 900,
+  "launchRpm": 2200,
+  "redlineRpm": 6800,
+  "inertia": 0.22,
+  "engineBrake": 35,
+  "torqueCurve": [
+   [
+    700,
+    180
+   ],
+   [
+    1500,
+    260
+   ],
+   [
+    2500,
+    330
+   ],
+   [
+    3500,
+    390
+   ],
+   [
+    4500,
+    420
+   ],
+   [
+    5500,
+    400
+   ],
+   [
+    6200,
+    360
+   ],
+   [
+    6800,
+    300
+   ]
+  ]
+ },
+ "drivetrain": {
+  "lowRatio": 57,
+  "highRatio": 20,
+  "highTorque": 0.55,
+  "lowMult": 2.2,
+  "lowSpeed": 0.35,
+  "lowBrake": 1.0,
+  "efficiency": 0.9
+ },
+ "brakes": {
+  "torque": 2200
+ },
+ "winch": {
+  "mount": [
+   1.9,
+   0.32
+  ],
+  "maxLength": 18,
+  "minLength": 0.8,
+  "reelSpeed": 1.8,
+  "maxPull": 20000,
+  "breakTension": 32000,
+  "stiffness": 200000,
+  "damping": 12000
+ },
+ "hardcore": {
+  "bogAngle": 16,
+  "tcStallRpm": 2400,
+  "lockSpeed": 6,
+  "transGain": 0.3,
+  "transSteepGain": 1.5
+ }
+}
