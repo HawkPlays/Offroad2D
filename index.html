@@ -82,7 +82,7 @@
       onPlayAgain: () => start(),
       onNext: () => { const id = nextLevel(); if (id) launch({ level: id, vehicle: cur.vehicle }); },
       onMenu: () => openMenu(),
-      cam: (q.get('cam') || store.get('o2d.cam') || '2.5D').toUpperCase(), onCam: m => store.set('o2d.cam', m),
+      cam: '2.5D', onCam: m => store.set('o2d.cam', m),
       onShift: (kind, info) => audio.shift(kind, info),
       onTactile: (kind, k, lvl) => audio.steerClick(kind, k, lvl),   // steering notch / lock click (Silent-ringer fallback)            // shifter notch / range commit / 4WD + locker clicks / ignition key
       onHorn: (on, cut) => { if (on) audio.unlock(); audio.horn(on, cut); },  // TILT wheel centre cap / H: held twin-tone horn
@@ -93,7 +93,7 @@
       onVolume: v => audio.setVolumes(v),                           // MENU -> SOUND sliders: master / engine / world / interface
       onGfx: m => {                                                 // MENU -> GRAPHICS: auto (default) | low | med | high
         renderer.setQuality(m);                                     // resizing the canvas clears it: paused, nothing redrew it until RESUME (black)
-        if (paused && running && car) { const s = hud.state; renderer.draw({ vehicle: car.getState(), dyn: phys.getDynamic(dyn), debug: s.debug, cam: s.cam, dt: 0, spot: finished ? null : hud.spot, info: { fps, steps: 0, time: phys.time, dodge: hud.dodge } }); }
+        if (paused && running && car) { const s = hud.state; renderer.draw({ vehicle: car.getState(), dyn: phys.getDynamic(dyn), debug: false, cam: s.cam, dt: 0, spot: finished ? null : hud.spot, info: { fps, steps: 0, time: phys.time, dodge: hud.dodge } }); }
       },
       gfxInfo: () => renderer.quality,                               // renderer quality readout (debug)
     });
@@ -327,7 +327,7 @@
       }
       if (failed) {                                                 // no stages / tips / respawn / finish while failing
         if (dt > 0) fps += (1 / dt - fps) * 0.05;
-        renderer.draw({ vehicle: v, dyn: phys.getDynamic(dyn), debug: s.debug, cam: s.cam, dt: failed.shown ? 0 : dt, spot: failed.shown ? null : hud.spot, info: { fps, steps, time: phys.time, dodge: hud.dodge } });
+        renderer.draw({ vehicle: v, dyn: phys.getDynamic(dyn), debug: false, cam: s.cam, dt: failed.shown ? 0 : dt, spot: failed.shown ? null : hud.spot, info: { fps, steps, time: phys.time, dodge: hud.dodge } });
         hud.update(v, cfg.engine.redlineRpm);
         audio.setMuted(s.mute || failed.shown);
         audio.update(v, dt, cfg.engine);
@@ -372,7 +372,7 @@
         }
       }
       if (dt > 0) fps += (1 / dt - fps) * 0.05;
-      renderer.draw({ vehicle: v, dyn: phys.getDynamic(dyn), debug: s.debug, cam: s.cam, dt, spot: finished ? null : hud.spot, info: { fps, steps, time: phys.time, dodge: hud.dodge } });
+      renderer.draw({ vehicle: v, dyn: phys.getDynamic(dyn), debug: false, cam: s.cam, dt, spot: finished ? null : hud.spot, info: { fps, steps, time: phys.time, dodge: hud.dodge } });
       hud.update(v, cfg.engine.redlineRpm);
       audio.setMuted(s.mute);
       audio.update(v, dt, cfg.engine);

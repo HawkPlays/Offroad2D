@@ -30,7 +30,7 @@ const TOGGLES = [                                    // reset to off on every ru
   { id: 'fourWD',  label: '4WD', cls: 'btn tog',  key: 'Digit1' },
 ];
 const OPTIONS = [                                    // pause-panel switches; persist across runs
-  { id: 'debug', label: 'DEBUG', key: 'KeyG' },
+  { id: 'debug', label: 'DEBUG', key: null },
   { id: 'mute',  label: 'MUTE',  key: 'KeyM' },
 ];
 /** Saved HUD prefs (o2d.ui): steer mode + tilt range (MENU -> STEERING), control size scales (MENU -> RESIZE HUD), graphics quality
@@ -711,17 +711,17 @@ export function createHud(root, handlers = {}) {
   const gfxT = tile('gfx', 'graphics quality', 'gfx', () => setUi('gfx', GFX_MODES[(GFX_MODES.indexOf(ui.gfx) + 1) % GFX_MODES.length]));
   const soundT = tile('sound', 'sound', 'speaker', () => setView('sound'));
   // camera toggle: icon shows the live mode (2.5D oblique cube <-> flat 2D square)
-  state.cam = handlers.cam === '2D' ? '2D' : '2.5D';
+  state.cam = '2.5D';
   const camT = tile('cam', 'camera 2.5D / 2D (C)', 'cam3', () => setCam(state.cam === '2D' ? '2.5D' : '2D'));
-  const setCam = m => { state.cam = m; setIcon(camT.el, m === '2D' ? 'cam2' : 'cam3'); camT.el.classList.toggle('on', m === '2.5D'); handlers.onCam?.(m); };
-  setCam(state.cam);
+  const setCam = m => { m = '2.5D'; state.cam = m; setIcon(camT.el, m === '2D' ? 'cam2' : 'cam3'); camT.el.classList.toggle('on', m === '2.5D'); handlers.onCam?.(m); };
+  setCam(state.cam); camT.el.style.display = 'none';
   const nextSpot = () => setUi('spot', SPOT_UI[(SPOT_UI.indexOf(ui.spot) + 1) % SPOT_UI.length]);
   const spotT = tile('spot', 'spotter view: auto / on / off (O)', 'eye', nextSpot);
   const setOption = (id, v) => {
     state[id] = v; els[id]?.classList.toggle('on', v);
     if (id === 'mute') { setIcon(soundT.el, v ? 'mute' : 'speaker'); soundT.el.classList.toggle('muted', v); }
   };
-  els.debug = tile('debug', 'debug overlay (G)', 'bug', () => setOption('debug', !state.debug)).el;
+  els.debug = tile('debug', 'debug overlay (G)', 'bug', () => setOption('debug', !state.debug)).el; els.debug.style.display = 'none';
   const subHead = (parent, label, icon) => {
     const r = mk('p-head', '', parent);
     pBtn(r, 'back', 'back', () => setView('main'), 'back');
