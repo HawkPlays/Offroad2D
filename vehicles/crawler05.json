@@ -1,0 +1,23 @@
+{
+  "name": "Fango GT",
+  "paint": {"body": "#6b2bbd", "bed": "#5d24a6", "frame": "#1b1b20", "trim": "#18181c", "accent": "#e6e6ec"},
+  "look": {"style": "wedge", "tube": [], "links": 4, "tread": {"lugs": 14, "kind": "lug", "depth": 0.06}, "rim": "#c9a227", "beadlock": false, "coil": {"spring": "#e6e6ec", "body": "#2a2a30"}},
+  "chassis": {"mass": 1500, "inertia": 1900, "com": [-0.05, -0.08], "friction": 0.45, "restitution": 0.05, "shapes": [
+    {"kind": "frame", "points": [[-2.15, -0.12], [2.1, -0.12], [2.3, 0.08], [2.22, 0.2], [-2.22, 0.2], [-2.3, 0.04]]},
+    {"kind": "hood", "points": [[0.6, 0.2], [2.25, 0.2], [2.3, 0.3], [0.72, 0.6]]},
+    {"kind": "cab", "points": [[-1.3, 0.2], [0.72, 0.2], [0.72, 0.6], [0.02, 1.0], [-0.8, 0.98], [-1.3, 0.6]]},
+    {"kind": "bed", "points": [[-2.25, 0.2], [-1.3, 0.2], [-1.3, 0.6], [-2.08, 0.54], [-2.3, 0.36]]}
+  ]},
+  "wheels": {"radius": 0.47, "mass": 28, "inertia": 3.8, "grip": 1.0},
+  "axles": [
+    {"name": "front", "mount": [1.38, -0.52], "axis": [0, 1], "brakeBias": 1.0, "shockTop": [1.0, 0.45], "linkPivot": [0.35, -0.05], "suspension": {"stiffness": 16000, "damping": 1800, "reboundDamping": 2500, "travel": 0.45, "preload": 0.02, "bumpStopStiffness": 160000, "bumpStopLength": 0.08}},
+    {"name": "rear", "mount": [-1.38, -0.52], "axis": [0, 1], "brakeBias": 0.8, "shockTop": [-1.0, 0.45], "linkPivot": [-0.35, -0.05], "suspension": {"stiffness": 17000, "damping": 1850, "reboundDamping": 2600, "travel": 0.45, "preload": 0.02, "bumpStopStiffness": 160000, "bumpStopLength": 0.08}}
+  ],
+  "engine": {"idleRpm": 900, "launchRpm": 2600, "redlineRpm": 8000, "inertia": 0.2, "engineBrake": 38, "torqueCurve": [[700, 200], [1500, 270], [2500, 340], [3500, 400], [4500, 450], [5500, 470], [6500, 455], [7300, 420], [8000, 360]]},
+  "drivetrain": {"lowRatio": 50, "highRatio": 17, "highTorque": 0.75, "lowMult": 1.9, "lowSpeed": 0.35, "lowBrake": 0.9, "efficiency": 0.9},
+  "brakes": {"torque": 2600},
+  "winch": {"mount": [2.3, 0.12], "maxLength": 18, "minLength": 0.8, "reelSpeed": 1.8, "maxPull": 20000, "breakTension": 32000, "stiffness": 200000, "damping": 12000},
+  "hardcore": {"bogAngle": 15, "tcStallRpm": 2700, "lockSpeed": 6.5, "transGain": 0.32, "transSteepGain": 1.6},
+  "fuel": {"tank": 0.7},
+  "sound": {"profile": "rally", "rate": 1.12}
+}
