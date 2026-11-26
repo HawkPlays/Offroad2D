@@ -1573,13 +1573,13 @@ export class Renderer {
     if (m && Math.abs(m.x - cx) < 0.004 && Math.abs(m.y - l.y) < 0.004 && Math.abs(m.a - l.a) < 0.004 && m.cz === cz && m.lv === this.level) return m;
     const NR = 6, NL = 10, V = new Float64Array((NR + 1) * NL * 3), G = new Uint8Array((NR + 1) * NL), ca = Math.cos(l.a), sa = Math.sin(l.a);
     // box: a fractured ledge block instead of a cobble -- superellipse (flat top, steep sides), stronger facet jitter
-    const ex = box ? 0.55 : 1, sp = (t, e) => Math.sign(t) * Math.abs(t) ** e, j0 = box ? 0.78 : 0.84, j1 = box ? 0.3 : 0.24;
+    const ex = box ? 0.85 : 1, sp = (t, e) => Math.sign(t) * Math.abs(t) ** e, j0 = box ? 0.78 : 0.84, j1 = box ? 0.3 : 0.24;
     const rn = (j, k) => { const h = Math.sin(key * 7.13 + j * 3.71 + k * 1.93 + (j === 0 || j === NR ? 99 * j : 0) * (k === 0 ? 1 : 0)) * 15731.7; return h - Math.floor(h); };
     for (let j = 0; j <= NR; j++) {
       const th = -Math.PI / 2 + Math.PI * j / NR, ct = Math.cos(th), st = Math.sin(th);
       for (let k = 0; k < NL; k++) {
         const ph = TAU * (k + (j & 1) * 0.5) / NL, q = j === 0 || j === NR ? 0.92 + 0.1 * rn(j, 0) : Math.min(box && j >= NR - 1 ? 1 : 9, j0 + j1 * rn(j, k));
-        const ce = sp(ct, ex), u = r * ce * sp(Math.cos(ph), ex) * q, v = r * 0.92 * sp(st, ex) * (j === NR ? (box ? 0.97 : 0.8) : 1) * q, w = rz * ce * sp(Math.sin(ph), ex) * q;
+        const ce = sp(ct, ex), u = r * ce * sp(Math.cos(ph), ex) * q, v = r * 0.92 * sp(st, ex) * (j === NR ? (box ? 0.9 : 0.8) : 1) * q, w = rz * ce * sp(Math.sin(ph), ex) * q;
         const o = 3 * (j * NL + k);
         V[o] = cx + ca * u - sa * v; V[o + 1] = l.y + sa * u + ca * v; V[o + 2] = cz + w;
         const gy = this._surfY(V[o], V[o + 2]);
