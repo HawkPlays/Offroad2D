@@ -1289,7 +1289,10 @@ const PAINT = {
     const L = textAt(ctx, cs), sz = L.fs * 1.25;
     ctx.shadowColor = 'rgba(0,0,0,0.85)'; ctx.shadowOffsetY = 1.5; ctx.shadowBlur = 1.5;
     paintIcon(ctx, el.dataset.icon, L.x, L.y - L.fs * 1.02, sz, { color: vgrad(ctx, 0, h, STEEL), lw: 2.2 });
-    ctx.fillStyle = '#9aa1a9'; ctx.fillText('//', L.x + sz + L.fs * 0.35, L.y);
+    ctx.fillStyle = '#9aa1a9';
+    const tx = L.x + sz + L.fs * 0.35, tag = el.dataset.tag || '//';
+    if (tag.length > 2) { const m = ctx.measureText(tag).width, room = w - tx - 4; if (m > room && room > 0) { ctx.save(); ctx.translate(tx, L.y); ctx.scale(room / m, 1); ctx.fillText(tag, 0, 0); ctx.restore(); return; } }
+    ctx.fillText(tag, tx, L.y);
   },
   spec(ctx, w, h, el) {                                               // showroom spec plate: riveted dark metal, 4 icon columns, 5-notch gold bars
     const st = (el.dataset.stats || '').split(',').map(Number), icons = ['power', 'speed', 'grip', 'weight'];
@@ -1387,7 +1390,8 @@ export function createMenu(root, manifest, initial, onStart, onSelect, opts = {}
   const bestEls = {}, starEls = {};
   const section = (title, list, key, slots, icon) => {
     const col = mk('menu-col ' + key, '', root);
-    const hd = mk('menu-h', '\u2003\u2002 //', col); hd.dataset.icon = icon; hd.setAttribute('aria-label', title);
+    const tag = key === 'vehicle' ? 'PICK YOUR SHITBOX' : 'PICK YOUR POISON';
+    const hd = mk('menu-h', '\u2003\u2002 ' + tag, col); hd.dataset.icon = icon; hd.dataset.tag = tag;   // real text = layout width only (painted over by the canvas) hd.setAttribute('aria-label', title);
     const row = mk('menu-cards', '', col);
     const cards = [];
     for (const it of list) {
