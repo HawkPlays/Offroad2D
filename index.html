@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#101216">
+  <link rel="manifest" href="manifest.webmanifest">
   <!-- the game is already dark: browser "dark sites" modes (Samsung Internet, Brave / Chrome auto-dark) must not recolour it -->
   <meta name="color-scheme" content="dark">
   <meta name="darkreader-lock">
@@ -215,6 +216,10 @@
       sel => launch(sel), sel => preview(sel, true),
       { onMenu: () => hud.pause(), blocked: () => hud.paused });   // MENU pill / Esc: settings panel (steering, cam, sizes, mute)
     // START (menu) and NEXT (finish panel: same truck, next manifest level) -> load JSON, fresh run world
+    // one-time fallback: first touch/click enters fullscreen if START hasn't already (passive, never blocks taps)
+    { const fs = () => { document.removeEventListener('pointerdown', fs, true); document.removeEventListener('touchstart', fs, true);
+        try { if (!document.fullscreenElement && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {}); } catch (_) {} };
+      document.addEventListener('pointerdown', fs, { capture: true, passive: true }); document.addEventListener('touchstart', fs, { capture: true, passive: true }); }
     async function launch(sel) {
       audio.unlock();                                               // the START tap is the gesture that may start audio
       try { document.fullscreenElement || document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {}); } catch (_) {}

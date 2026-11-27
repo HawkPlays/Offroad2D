@@ -1,0 +1,9 @@
+{
+  "name": "Offroad2D",
+  "short_name": "Offroad2D",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#101216",
+  "theme_color": "#101216"
+}
