@@ -829,6 +829,10 @@ export function createHud(root, handlers = {}) {
     pauseEl.classList.toggle('show', p); root.classList.toggle('paused', p); menuBtn.classList.toggle('on', p);
     try { handlers.onPause?.(p); } catch (_) { /* glue optional */ }
   }
+  // tap outside the card (on the backdrop) closes the menu from any page; the press must also START on the backdrop (slider drags ending outside don't count)
+  let backDown = false;
+  on(pauseEl, 'pointerdown', e => { backDown = e.target === pauseEl; });
+  on(pauseEl, 'click', e => { if (backDown && e.target === pauseEl) setPause(false); backDown = false; });
   resetControls();
 
   // gauges
