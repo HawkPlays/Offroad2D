@@ -366,8 +366,10 @@
         const sc = hud.showFinish({ time: t, par: level.par ?? (level.finish.x - level.spawn.x) / 1.2, level: entry.name || level.name, vehicle: cur.vehicleName,
           best: { isNew, prev: prev ? prev.time : null }, fuel: v.fuel, tank: phys.tank, cans: [got.length, phys.cans.length],
           canFuel: got.reduce((a, c) => a + c.fuel, 0), hardcore: v.hardcore, hasNext: !!nextLevel() });
-        if (isNew || !prev || sc.total > (prev.score || 0)) {                   // best time (+ its truck) and best score, kept separately
-          bests[cur.level] = isNew ? { time: t, vehicle: cur.vehicleName, score: Math.max(sc.total, prev?.score || 0) } : { ...prev, score: sc.total };
+        const vs = { ...(prev?.vs || {}) }, pv = vs[cur.vehicle] || 0;           // stars/score are kept per truck (vs = {vehicleId: score})
+        if (sc.total > pv) vs[cur.vehicle] = sc.total;
+        if (isNew || !prev || sc.total > pv) {                                     // best time (+ its truck) and per-truck best score
+          bests[cur.level] = isNew ? { time: t, vehicle: cur.vehicleName, score: Math.max(sc.total, prev?.score || 0), vs } : { ...prev, vs };
           store.set(BEST_KEY, JSON.stringify(bests)); menu.setBests?.(bests);
         }
       }

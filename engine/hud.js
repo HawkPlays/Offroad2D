@@ -1363,6 +1363,15 @@ export function createMenu(root, manifest, initial, onStart, onSelect, opts = {}
   const levels = manifest.levels || [], vehicles = manifest.vehicles || [];
   const pick = (list, id) => (list.find(x => x.id === id) || list[0] || {}).id;
   const selection = { level: pick(levels, initial.level), vehicle: pick(vehicles, initial.vehicle) };
+  let lastBests = {};
+  function repaintStars() {
+    const bests = lastBests;
+      for (const id in starEls) {                             // highest star count ever on that level (best score; old time-only bests = 1)
+        const b = bests[id], sc = b && b.vs ? b.vs[selection.vehicle] : undefined;   // stars belong to the selected truck only
+        const n = !b || !isFinite(b.time) ? 0 : b.vs ? (sc > 0 ? starsOf(sc) : 0) : isFinite(b.score) ? starsOf(b.score) : 1;
+        starEls[id].forEach((e, i) => { e.textContent = i < n ? '★' : '☆'; e.classList.toggle('on', i < n); });
+      }
+  }
   root.textContent = '';
   root.classList.add('menu');
   const menuBtn = mk('menu-pill', '', root);
@@ -1396,7 +1405,7 @@ export function createMenu(root, manifest, initial, onStart, onSelect, opts = {}
       if (key === 'level') {                                  // best-stars strip at the card's right edge (empty until cleared)
         const st = mk('card-stars', '', c); starEls[it.id] = [0, 1, 2].map(() => mk('cs', '☆', st, 'span'));
       }
-      on(c, 'pointerup', e => { e.preventDefault(); if (selection[key] === it.id) return; selection[key] = it.id; sync(); onSelect?.({ ...selection }); });
+      on(c, 'pointerup', e => { e.preventDefault(); if (selection[key] === it.id) return; selection[key] = it.id; sync(); if (key === 'vehicle') repaintStars(); onSelect?.({ ...selection }); });
       cards.push([c, it.id]);
     }
     for (let i = list.length; i < slots; i++) { const c = mk('card empty', '', row); mk('card-name', 'EMPTY SLOT', c); }
@@ -1463,10 +1472,7 @@ export function createMenu(root, manifest, initial, onStart, onSelect, opts = {}
     },
     /** bests = { levelId: { time (s), vehicle? (display name) } } -> "BEST 63.2 s · Rock Buggy" beside each level card's tag. */
     setBests(bests = {}) {
-      for (const id in starEls) {                             // highest star count ever on that level (best score; old time-only bests = 1)
-        const b = bests[id], n = !b || !isFinite(b.time) ? 0 : isFinite(b.score) ? starsOf(b.score) : 1;
-        starEls[id].forEach((e, i) => { e.textContent = i < n ? '★' : '☆'; e.classList.toggle('on', i < n); });
-      }
+      lastBests = bests; repaintStars();
       for (const id in bestEls) {
         const b = bests[id], el = bestEls[id];
         el.textContent = '';
