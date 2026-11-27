@@ -420,7 +420,7 @@ export class Vehicle {
       w.z = this.z + w.lx * sy + w.lz * cy;
       w.tire.z = w.lane.z = w.z;
       w.tire.h = this.yaw + (w.axle === 0 ? this.steerAngle : 0);   // tyre heading: its footprint's z shifts along x (physics _preSolve)
-      w.lane.x = w.body.getPosition().x; w.lane.h = w.tire.h; w.lane.r = this.cfg.wheels.radius;
+      w.lane.x = w.body.getPosition().x; if (!(Math.abs(w.tire.h - (w.lane.h || 0)) < 0.012)) w.lane.h = w.tire.h; w.lane.r = this.cfg.wheels.radius;
       w.lane.foot = Math.abs(this.roll) < 0.02;                     // tipping over the edge: inner tyres pivot, no lip bump under them
     }
     const bl = this.belly; bl.z = this.z; bl.h = this.yaw; bl.x = this.chassis.getPosition().x;

@@ -1746,6 +1746,17 @@ export class Renderer {
    *  prop slabs inside its own footprint never paint over it (a yawed tyre in a sunken lane or perched on a ledge vanished
    *  into the nearer bank); far tyres stay behind the body plane, near ones wait for it. */
   _tyrePlane(v, o, dm) {
+    let p = this._tyrePlane0(v, o, dm);
+    // r16: tyres of one side whose planes lie within a lug margin of each other share the higher plane: a terrain slab between
+    // them painted over the rear lugs (r15 dropped the bound instead, which left the steered front tyre inside a wall slab =
+    // 'tyre clips through the rock', parked + steered next to a shelf face)
+    const tr = this.look ? this.look.tread : { depth: 0.05 }, m = 2 * treadDepth(o.radius, tr) + 0.04;
+    const lim = o._shared ? m * 1.5 : m, p0 = p;                      // hysteresis: once shared, stay shared until 1.5× the margin (no per-frame flip)
+    o._shared = false;
+    for (const q of v.wheels) if (q !== o && (q.lz < 0) === (o.lz < 0)) { const pq = this._tyrePlane0(v, q, dm); if (pq > p && pq - p0 <= lim) { p = pq; o._shared = true; } }
+    return p;
+  }
+  _tyrePlane0(v, o, dm) {
     const h = (v.yaw || 0) + (o.steer || 0), zn = o.z + dm.tw / 2 * Math.abs(Math.cos(h)) + o.radius * Math.abs(Math.sin(h));
     const zBody = Math.min(this._T.zc + dm.B * this._T.cy, dm.D);
     return Math.min(o.lz < 0 ? Math.min(zn, zBody) : Math.max(zn, zBody), dm.D);

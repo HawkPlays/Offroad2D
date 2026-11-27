@@ -63,8 +63,14 @@ export function laneOffset(T, zones, x, y, z, zq = z, hw = 0) {   // zq: z the z
     if (!(wx > 0)) continue;
     const lo = q.side === 'R' ? 0 : q.z0, hi = q.side === 'L' ? 0 : q.z1;
     const wzAt = (u) => smooth((u - lo) / T.zRamp + 0.5) * smooth((hi - u) / T.zRamp + 0.5);
-    let wz = zq === z ? wzAt(z) : Math.min(wzAt(z), wzAt(zq));     // lenient: least of centre / footprint
-    if (hw > 0 && q.dy > 0 && wz < 1) for (const s of [-hw, hw]) wz = Math.max(wz, zq === z ? wzAt(z + s) : Math.min(wzAt(z + s), wzAt(zq + s)));
+    // r16: a WALL shelf is never sampled along the heading (a yawed + steered tyre, e.g. creeping back in reverse turned, had its
+    // footprint swung ~0.5 m off the shelf = the tyre drove straight through the wall); steps / ledges stay lenient
+    const zz = zq !== z && isWall(T, q) ? z : zq;
+    let wz;
+    if (hw > 0 && isWall(T, q)) {                      // physics tyre vs wall shelf: a solid block, not a ramp. Any tread edge inside its z span
+      wz = wzAt(z - hw) > 0.5 || wzAt(z) > 0.5 || wzAt(z + hw) > 0.5 ? 1 : 0;   // = the face is there (head-on, alongside, reversing: no creeping up it
+    } else wz = zz === z ? wzAt(z) : Math.min(wzAt(z), wzAt(zz));   // from the side, no passing through); steps stay lenient: least of centre / footprint
+    if (hw > 0 && q.dy > 0 && wz < 1 && !isWall(T, q)) for (const s of [-hw, hw]) wz = Math.max(wz, zz === z ? wzAt(z + s) : Math.min(wzAt(z + s), wzAt(zz + s)));
     off += q.dy * wx * wz;
   }
   return off;
