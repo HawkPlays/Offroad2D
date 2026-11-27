@@ -4,31 +4,31 @@
       "id": "level01",
       "file": "levels/level01.json",
       "thumb": "levels/thumbs/level01.jpg",
-      "name": "Timber Gulch",
+      "name": "Log Jam Gulch",
       "difficulty": "Easy",
-      "blurb": "Where legends start"
+      "blurb": "Baby's first mud"
     },
     {
       "id": "level02",
       "file": "levels/level02.json",
       "thumb": "levels/thumbs/level02.jpg",
-      "name": "Razorback Gorge",
+      "name": "Oh-No Gorge",
       "difficulty": "Hard",
-      "blurb": "Bridges over nothing"
+      "blurb": "Bridges? Ha. Pray."
     },
     {
       "id": "level03",
       "file": "levels/level03.json",
       "thumb": "levels/thumbs/level03.jpg",
-      "name": "Shattered Ridge",
+      "name": "Cliff Says No",
       "difficulty": "Hard",
-      "blurb": "The cliff says no"
+      "blurb": "Bring a spare spine"
     },
     {
       "id": "level05",
       "file": "levels/level05.json",
       "thumb": "levels/thumbs/level05.jpg",
-      "name": "Split-Rut Canyon",
+      "name": "Rut Roulette",
       "difficulty": "Hard",
       "blurb": "Pick a rut. Pray."
     }
@@ -37,56 +37,56 @@
     {
       "id": "crawler01",
       "file": "vehicles/crawler01.json",
-      "name": "Crawler 01",
+      "name": "Grandpa's Goat",
       "chips": [
         "1.4 t",
         "42:1 low"
       ],
-      "trait": "Short-wheelbase",
+      "trait": "Tiny, stubborn, wins",
       "stats": { "power": 2, "speed": 2, "grip": 5, "weight": 2 }
     },
     {
       "id": "crawler02",
       "file": "vehicles/crawler02.json",
-      "name": "Mega Bogger",
+      "name": "Mud Hippo",
       "chips": [
         "2.3 t",
         "mud tyres"
       ],
-      "trait": "Heavy mud plugger",
+      "trait": "Fat tyres, no hurry",
       "stats": { "power": 5, "speed": 1, "grip": 4, "weight": 5 }
     },
     {
       "id": "crawler03",
       "file": "vehicles/crawler03.json",
-      "name": "Rock Buggy",
+      "name": "Cage Frog",
       "chips": [
         "0.9 t",
         "long travel"
       ],
-      "trait": "Light long-travel",
+      "trait": "Light. Bouncy. Rude.",
       "stats": { "power": 3, "speed": 4, "grip": 4, "weight": 1 }
     },
     {
       "id": "crawler04",
       "file": "vehicles/crawler04.json",
-      "name": "V8 Truggy",
+      "name": "Redline Rhino",
       "chips": [
         "1.35 t",
         "V8 torque"
       ],
-      "trait": "V8 rock bouncer",
+      "trait": "Loud. Needs hugs.",
       "stats": { "power": 4, "speed": 3, "grip": 3, "weight": 2 }
     },
     {
       "id": "crawler05",
       "file": "vehicles/crawler05.json",
-      "name": "Fango GT",
+      "name": "Lost Italian",
       "chips": [
         "1.5 t",
         "V10 H-range"
       ],
-      "trait": "Lifted supercar",
+      "trait": "Wrong car. Vibes.",
       "stats": { "power": 4, "speed": 5, "grip": 2, "weight": 3 }
     }
   ],
