@@ -1,4 +1,4 @@
-/* Offroad2D — fullscreen landscape layout + touch HUD */
+/* LOCK THE DIFF — fullscreen landscape layout + touch HUD */
 /* Already-dark design: declaring color-scheme dark (+ the meta in index.html) keeps browser forced-dark / "dark sites" modes
    (Samsung Internet, Brave, Chrome auto-dark) from inverting text, gradients and buttons; forced-color-adjust keeps Windows
    high-contrast themes from flattening the HUD. Visuals must look the same under any user colour setting. */
@@ -335,7 +335,7 @@ html, body {
 /* finish panel: PLAY AGAIN + MENU side by side */
 
 
-/* ---- start screen = showroom (refs/Updated_UI.png): riveted MENU pill, chrome + gold OFFROAD2D, dark-glass LEVEL (teaser
+/* ---- start screen = showroom (refs/Updated_UI.png): riveted MENU pill, chrome + gold LOCK THE DIFF, dark-glass LEVEL (teaser
    thumbs) / VEHICLE columns with brushed-metal cards (orange glow = picked), riveted gold START; centre clear for the canvas ---- */
 @font-face { font-family: 'Exo 2'; font-style: italic; font-weight: 400 900; font-display: swap;
   src: url(./fonts/exo2-italic-latin.woff2) format('woff2'); }        /* OFL, fonts/OFL.txt */
@@ -362,9 +362,9 @@ body.menu-open #hud.paused { z-index: 11; }
     linear-gradient(180deg, #3a2d22, #17110c 60%, #22180f);
   border: 2px solid var(--rim); box-shadow: 0 0 0 2px #120c07, 0 0 12px var(--rim-glow), inset 0 1px 0 rgba(255, 220, 170, 0.35), inset 0 -6px 12px rgba(0, 0, 0, 0.5); }
 .menu-pill:active { transform: scale(0.96); }
-/* title: heavy italic; OFFROAD chrome, 2D molten gold; a dark outline layer (::before, data-t) sits behind the gradient fill */
+/* title: heavy italic; LOCK THE chrome, DIFF molten gold; a dark outline layer (::before, data-t) sits behind the gradient fill */
 .overlay.menu h1.menu-title { position: absolute; top: calc(var(--sa-t) - 0.06em); left: 50%; transform: translateX(-50%); margin: 0; white-space: nowrap;
-  font-size: clamp(32px, 11.5vmin, 104px); font-weight: 900; font-style: italic; letter-spacing: -0.01em; line-height: 1.08;
+  font-size: clamp(26px, 9vmin, 84px); font-weight: 900; font-style: italic; letter-spacing: -0.01em; line-height: 1.08;
   filter: drop-shadow(0 0.05em 0.06em rgba(0, 0, 0, 0.7)) drop-shadow(0 0 0.25em rgba(0, 0, 0, 0.35)); }
 .menu-title span { position: relative; display: inline-block; padding: 0 0.04em; color: transparent; -webkit-background-clip: text; background-clip: text; }
 .menu-title span::before { content: attr(data-t); position: absolute; inset: 0; z-index: -1; padding: inherit;

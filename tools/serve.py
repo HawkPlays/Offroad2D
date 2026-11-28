@@ -14,5 +14,5 @@ class NoCache(http.server.SimpleHTTPRequestHandler):
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 port = int(sys.argv[1]) if len(sys.argv) > 1 else 8080
 handler = functools.partial(NoCache, directory=root)
-print(f'Offroad2D on http://localhost:{port}/  (Ctrl+C to stop)')
+print(f'LOCK THE DIFF on http://localhost:{port}/  (Ctrl+C to stop)')
 http.server.ThreadingHTTPServer(('', port), handler).serve_forever()

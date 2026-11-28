@@ -1222,7 +1222,7 @@ const PAINT = {
     ctx.shadowColor = 'rgba(0,0,0,0.85)'; ctx.shadowOffsetY = 2; ctx.shadowBlur = 1.5;
     for (const [t, cls] of runsOf(el)) { ctx.fillStyle = cls === 'menu-sl' ? '#9aa1a9' : vgrad(ctx, 0, h, STEEL); ctx.fillText(t, x, L.y); x += ctx.measureText(t).width; }
   },
-  title(ctx, w, h, el, cs) {                                          // OFFROAD chrome | 2D gold: dark outline, drop shadow, gold glow
+  title(ctx, w, h, el, cs) {                                          // LOCK THE chrome | DIFF gold: dark outline, drop shadow, gold glow
     const L = textAt(ctx, cs), t = el.dataset.t || el.textContent, acc = el.classList.contains('t-acc'), fs = L.fs;
     ctx.lineJoin = 'round'; ctx.lineWidth = 0.09 * fs; ctx.strokeStyle = ctx.fillStyle = '#17120d';
     if (acc) { ctx.shadowColor = el.classList.contains('t-fail') ? 'rgba(255,60,30,0.55)' : 'rgba(255,150,30,0.55)'; ctx.shadowBlur = 0.35 * fs; ctx.fillText(t, L.x, L.y); }
@@ -1356,7 +1356,7 @@ function canvasPaint(el, kind, pad, offs) {
 }
 
 /**
- * Start screen = showroom: MENU pill (top-left), OFFROAD2D title, LEVEL column (left), VEHICLE column (right), gold START pill;
+ * Start screen = showroom: MENU pill (top-left), LOCK THE DIFF title, LEVEL column (left), VEHICLE column (right), gold START pill;
  * the centre stays empty for the live canvas (truck on the glass platform). opts { onMenu?() MENU pill / Esc, blocked?() true = keys off }.
  */
 export function createMenu(root, manifest, initial, onStart, onSelect, opts = {}) {   // onSelect?(selection): card picked (live preview)
@@ -1385,8 +1385,8 @@ export function createMenu(root, manifest, initial, onStart, onSelect, opts = {}
   menuBtn.innerHTML = svg('menu'); menuBtn.setAttribute('aria-label', 'menu'); menuBtn.title = 'menu (Esc)';
   menuBtn.setAttribute('role', 'button');
   on(menuBtn, 'pointerup', e => { e.preventDefault(); opts.onMenu?.(); });
-  const title = mk('menu-title', '', root, 'h1');            // glass title: OFFROAD (white / silver) + 2D (amber-gold)
-  for (const [cls, t] of [['t-main', 'OFFROAD'], ['t-acc', '2D']]) mk(cls, t, title, 'span').dataset.t = t;   // data-t: dark outline layer (CSS ::before)
+  const title = mk('menu-title', '', root, 'h1');            // glass title: LOCK THE (white / silver) + DIFF (amber-gold)
+  for (const [cls, t] of [['t-main', 'LOCK THE'], ['t-acc', 'DIFF']]) mk(cls, t, title, 'span').dataset.t = t;   // data-t: dark outline layer (CSS ::before)
   const bestEls = {}, starEls = {};
   const section = (title, list, key, slots, icon) => {
     const col = mk('menu-col ' + key, '', root);

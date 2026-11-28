@@ -2,3 +2,7 @@ refs/
 tests/
 CLAUDE.md
 .DS_Store
+
+node_modules/
+android/
+www/
