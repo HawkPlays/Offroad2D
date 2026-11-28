@@ -18,7 +18,7 @@ jobs:
         run: |
           mkdir -p www
           cp -r index.html style.css content.json manifest.webmanifest engine fonts levels sfx vehicles www/
-            - name: Install Capacitor & configure landscape Android project
+      - name: Install Capacitor & configure landscape Android project
         run: |
           npm init -y
           npm install @capacitor/core @capacitor/cli @capacitor/android
